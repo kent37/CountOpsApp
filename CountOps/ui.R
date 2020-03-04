@@ -16,8 +16,21 @@ dashboardPage(
   ),
   
   dashboardBody(
+    tags$head(tags$style(HTML('.shiny-plot-output {
+               margin-left: 5%;
+               }'))),
       fluidRow(
-          plotOutput('the_plot', width='95%')
+          plotOutput('count_plot', width='90%')
+      ),
+      fluidRow(hr(style="
+    border-top: 2px solid darkblue;
+    margin-left: 5%;
+    margin-right:  5%;
+    margin-top: 0;
+    margin-bottom: 1px;
+")),
+      fluidRow(
+          plotOutput('seasonality_plot', width='90%')
       )
   )
 )

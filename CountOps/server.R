@@ -3,12 +3,18 @@
 filter_data = function(start_year, end_year, 
                        start_hour, end_hour, operation, group_by_) {
     group_by_ = as.character(group_by_)
+    
     # Using base R here is orders of magnitude faster than filter
-    all_data[all_data$Year >= start_year & all_data$Year <= end_year &
+    df = all_data[all_data$Year >= start_year & all_data$Year <= end_year &
              all_data$Hour >= start_hour & all_data$Hour <= end_hour &
              all_data$Operation==operation,] %>% 
         group_by(!!ensym(group_by_)) %>% 
         summarize(Count=sum(Count))
+    
+    # If grouping by month, leave out 7/2019, it is incomplete
+    if (group_by_=='Month')
+        df = df  %>% filter(Month != "2019-07-01")
+    df
 }
 
 as_am_pm = function(t) {
@@ -35,7 +41,8 @@ server <- function(input, output) {
     '{as_am_pm(input$hour_range[1])}-{as_am_pm(input$hour_range[2]+1)}')
   })
   
-  output$the_plot = renderPlot({
+  #### Counts ####
+  output$count_plot = renderPlot({
     df = filtered()
     
 
@@ -45,11 +52,42 @@ server <- function(input, output) {
                    date_labels='%Y', expand=expand_scale(mult=0.1)) +
       silgelib::theme_plex() +
       labs(title=title(),
-           x='', y='Departure count',
-           caption='Data from FAA FOIA request Chart © 2020 Kent Johnson')
+         x='', y='Operation count',
+         caption='Data from FAA FOIA request | Chart © 2020 Kent Johnson')
     if (input$show_smooth)
         p = p + stat_smooth(method=lm, se=FALSE, 
                             color='darkblue', size=1)
     p
     })
+  
+  #### Seasonality ####
+  output$seasonality_plot = renderPlot({
+    req(input$group_by=='Month') # Don't do daily seasonality
+    df = filtered()
+    
+    # Lots of ugly munging
+    # First make a ts object so we can get seasonality
+    start = if (input$year_range[1]==2010) c(2010, 3)
+      else c(input$year_range[2], 1)
+    frequency = 12
+
+    df_ts = ts(df$Count, start=start, frequency=frequency)
+    df_seas = stl(df_ts, s.window=7)
+    
+    # Convert back to a long data frame for plotting
+    df_df = as_tibble(df_seas$time.series) %>% 
+      mutate(Date=as.Date(as.yearmon(time(df_seas$time.series)))) %>% 
+      rename_at(-4, stringr::str_to_title) %>% 
+      pivot_longer(-Date, names_to='Series', values_to='Count') %>% 
+      mutate(Series = factor(Series, 
+                             levels=c('Trend', 'Seasonal', 'Remainder')))
+    
+    ggplot(df_df, aes(Date, Count)) +
+      geom_line(color='darkblue') +
+      facet_wrap(~Series, ncol=1, scales='free_y') +
+      labs(x='', y='Operation count',
+         title=glue('Seasonality and trend of {title()}'),
+         caption='Data from FAA FOIA request | Chart © 2020 Kent Johnson') +
+      theme_plex()
+  })
 }
