@@ -1,13 +1,22 @@
 # CountOps server
 
 filter_data = function(start_year, end_year, 
-                       start_hour, end_hour, operation, group_by_) {
+                       start_hour, end_hour, 
+                       operation, equip, 
+                       runways, group_by_) {
     group_by_ = as.character(group_by_)
     
     # Using base R here is orders of magnitude faster than filter
     df = all_data[all_data$Year >= start_year & all_data$Year <= end_year &
              all_data$Hour >= start_hour & all_data$Hour <= end_hour &
-             all_data$Operation==operation,] %>% 
+             all_data$Operation==operation,]
+    
+    if (equip=='Jet') df = df[df$Jet, ]
+    else if (equip=='Non-Jet') df = df[!df$Jet, ]
+    
+    if (!is.null(runways)) df = df[df$Runway %in% runways,]
+    
+    df = df %>% 
         group_by(!!ensym(group_by_)) %>% 
         summarize(Count=sum(Count))
     
@@ -28,16 +37,24 @@ as_am_pm = function(t) {
 
 server <- function(input, output) {
   filtered = reactive({
+      runways = if (input$runway_opt=='All') NULL else input$runway_sel
       filter_data(input$year_range[1], input$year_range[2],
                      input$hour_range[1], input$hour_range[2],
-                     input$operation, input$group_by)
+                     input$operation, input$equip, 
+                  runways, input$group_by)
   })
   
   title = reactive({
     period = if_else(input$group_by=='Month', 'monthly', 'daily')
     operation = if_else(input$operation=='Departure', 
                         'departures', 'arrivals')
-    glue('Logan Airport total {period} {operation}, ',
+    runways = if (input$runway_opt=='All' || is.null(input$runway_sel)) 
+        'all runways'
+      else paste('runways', paste(input$runway_sel, collapse=', '))
+    equip = if_else(input$equip=='Jet', 'jets only', 
+                    if_else(input$equip=='Non-Jet', 'non-jets only',
+                            'All equipment'))
+    glue('Logan Airport total {period} {operation}, {runways}, {equip},',
     '{as_am_pm(input$hour_range[1])}-{as_am_pm(input$hour_range[2]+1)}')
   })
   
