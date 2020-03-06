@@ -36,6 +36,7 @@ as_am_pm = function(t) {
 }
 
 server <- function(input, output) {
+  #### Filtered data ####
   filtered = reactive({
       runways = if (input$runway_opt=='All') NULL else input$runway_sel
       filter_data(input$year_range[1], input$year_range[2],
@@ -48,16 +49,24 @@ server <- function(input, output) {
     period = if_else(input$group_by=='Month', 'monthly', 'daily')
     operation = if_else(input$operation=='Departure', 
                         'departures', 'arrivals')
-    runways = if (input$runway_opt=='All' || is.null(input$runway_sel)) 
-        'all runways'
-      else paste('runways', paste(input$runway_sel, collapse=', '))
-    equip = if_else(input$equip=='Jet', 'jets only', 
-                    if_else(input$equip=='Non-Jet', 'non-jets only',
-                            'All equipment'))
-    glue('Logan Airport total {period} {operation}, {runways}, {equip},',
-    '{as_am_pm(input$hour_range[1])}-{as_am_pm(input$hour_range[2]+1)}')
+    glue('Logan Airport {period} {operation}, ',
+      '{input$year_range[1]}-{input$year_range[2]}')
   })
   
+  subtitle = reactive({
+    runways = if (input$runway_opt=='All' || is.null(input$runway_sel)) 
+        'All runways'
+      else if (length(input$runway_sel)==1)
+          paste('Runway', input$runway_sel)
+      else
+          paste('Runways', paste(input$runway_sel, collapse=', '))
+    equip = if_else(input$equip=='Jet', 'jets only', 
+                    if_else(input$equip=='Non-Jet', 'non-jets only',
+                            'all equipment'))
+     glue('{runways}, {equip}, ',
+    '{as_am_pm(input$hour_range[1])}-{as_am_pm(input$hour_range[2]+1)}')
+     
+  })
   #### Counts ####
   output$count_plot = renderPlot({
     df = filtered()
@@ -68,7 +77,7 @@ server <- function(input, output) {
       scale_x_date(date_breaks='1 year', minor_breaks=NULL,
                    date_labels='%Y', expand=expand_scale(mult=0.1)) +
       silgelib::theme_plex() +
-      labs(title=title(),
+      labs(title=title(), subtitle=subtitle(),
          x='', y='Operation count',
          caption='Data from FAA FOIA request | Chart © 2020 Kent Johnson')
     if (input$show_smooth)
@@ -103,8 +112,21 @@ server <- function(input, output) {
       geom_line(color='darkblue') +
       facet_wrap(~Series, ncol=1, scales='free_y') +
       labs(x='', y='Operation count',
-         title=glue('Seasonality and trend of {title()}'),
+         title=glue('Seasonality and trend of {title()}'), subtitle=subtitle(),
          caption='Data from FAA FOIA request | Chart © 2020 Kent Johnson') +
       theme_plex()
   })
+  
+  #### Data ####
+  output$data = renderDT(filtered(), rownames=FALSE,
+                         options=list(pageLength=15))
+  
+  output$download_data = downloadHandler(
+      filename=function() {
+          paste0(title(), ', ', subtitle(), '.csv')
+      },
+      content=function(file) {
+          write_csv(filtered(), file)
+      }
+  )
 }

@@ -26,21 +26,29 @@ dashboardPage(
   ),
   
   dashboardBody(
-    tags$head(tags$style(HTML('.shiny-plot-output {
+    tags$head(tags$style(HTML('.tabbable {
                margin-left: 5%;
                }'))),
-      fluidRow(
-          plotOutput('count_plot', width='90%')
+    tabsetPanel(type='tabs', 
+      tabPanel("Plot", 
+          fluidRow(
+              plotOutput('count_plot', width='90%')
+          ),
+          fluidRow(hr(style="
+            border-top: 2px solid darkblue;
+            margin-right:  10%;
+            margin-top: 0;
+            margin-bottom: 1px;
+            ")
+          ),
+          fluidRow(
+              plotOutput('seasonality_plot', width='90%')
+          )
       ),
-      fluidRow(hr(style="
-    border-top: 2px solid darkblue;
-    margin-left: 5%;
-    margin-right:  5%;
-    margin-top: 0;
-    margin-bottom: 1px;
-")),
-      fluidRow(
-          plotOutput('seasonality_plot', width='90%')
-      )
+      tabPanel('Data',
+               fluidRow(hr()),
+               fluidRow(DTOutput('data', width='90%')),
+               downloadButton('download_data', 'Download data'))
+    )
   )
 )
