@@ -48,7 +48,14 @@ dashboardPage(
       tabPanel('Data',
                fluidRow(hr()),
                fluidRow(DTOutput('data', width='90%')),
-               downloadButton('download_data', 'Download data'))
+               downloadButton('download_data', 'Download data')),
+      tabPanel('About',
+        fluidRow(
+          p('Operation counts from FAA CountOps program via FOIA request.',
+                 'Analysis and visualization by Kent Johnson.'),
+          a('GitHub', href='http://github.com/kent37/CountOpsApp')
+        )
+      )
     )
   )
 )
