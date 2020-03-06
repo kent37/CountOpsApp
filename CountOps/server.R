@@ -118,6 +118,13 @@ server <- function(input, output) {
   })
   
   #### Data ####
+  # This is the header section on the Data tab
+  output$data_header = renderUI({
+      tagList(
+          h2(title()),
+          h3(subtitle())
+      )
+  })
   output$data = renderDT(filtered(), rownames=FALSE,
                          options=list(pageLength=15))
   

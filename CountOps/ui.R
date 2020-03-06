@@ -26,36 +26,48 @@ dashboardPage(
   ),
   
   dashboardBody(
-    tags$head(tags$style(HTML('.tabbable {
-               margin-left: 5%;
-               }'))),
-    tabsetPanel(type='tabs', 
+    fluidRow(
+    tabBox(width=12,
       tabPanel("Plot", 
-          fluidRow(
+          fluidRow(box(width=12, status = "primary", 
               plotOutput('count_plot', width='90%')
-          ),
-          fluidRow(hr(style="
-            border-top: 2px solid darkblue;
-            margin-right:  10%;
-            margin-top: 0;
-            margin-bottom: 1px;
-            ")
-          ),
-          fluidRow(
+          )),
+          fluidRow(box(width=12, status = "primary", 
               plotOutput('seasonality_plot', width='90%')
-          )
+          ))
       ),
       tabPanel('Data',
-               fluidRow(hr()),
-               fluidRow(DTOutput('data', width='90%')),
-               downloadButton('download_data', 'Download data')),
+         fluidRow(box(width=12, solidHeader=TRUE,
+                      uiOutput('data_header')),
+                  box(width=9, solidHeader=TRUE,
+                      DTOutput('data', width='90%'))
+         ),
+         downloadButton('download_data', 'Download data')
+      ),
       tabPanel('About',
         fluidRow(
-          p('Operation counts from FAA CountOps program via FOIA request.',
-                 'Analysis and visualization by Kent Johnson.'),
-          a('GitHub', href='http://github.com/kent37/CountOpsApp')
+          box(title='Overview', width=12, solidHeader=TRUE,
+            p('Use this app to explore daily and monthly operation counts',
+              'at Boston Logan Airport from March 2010 to June 2019.',
+              'Choose arrival or departure counts, for one runway or all.',
+              'Limit times of day to see how early morning or late night ',
+              'operations have changed.'),
+           p('Charts show the selected counts over time and, for monthly counts,',
+             'the seasonality and trend. Count data is shown in a table and is ',
+             'available for download.')),
+        box(title='Data and analysis', width=12, solidHeader=TRUE,
+            p('Data for this app was obtained from the FAA CountOps ',
+              'program via FOIA request.'),
+            p('Analysis and programming by Kent S Johnson.')),
+        box(title='GitHub', width=12, solidHeader=TRUE,
+            'App:', a(href='http://github.com/kent37/CountOpsApp',
+                       'http://github.com/kent37/CountOpsApp'),
+            br(),
+            'Data:', a(href='http://github.com/kent37/CountOpsLogan', 
+                       'http://github.com/kent37/CountOpsLogan'))
         )
       )
+    )
     )
   )
 )
